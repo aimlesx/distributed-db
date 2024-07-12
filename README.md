@@ -1,117 +1,118 @@
-# Rozproszona Baza Danych
 
-## Struktura Bazy
-Baza składa się z węzłów, które wspólnie formują nieskierowany graf. W tego typu strukturze mogą tworzyć się cykle, które wymagają specjalnej uwagi. Niektóre operacje na bazie przypominają algorytm DFS (Depth First Search), który w swojej czystej postaci na grafie cyklicznym może wykonywać się rekurencyjnie w nieskończoność, efektywnie uniemożliwiając funkcjonowanie bazy danych.
+# Distributed Database
 
-## Protokół
-Protokół używany w bazie danych jest protokołem bezstanowym.
+## Database Structure
+The database consists of nodes that together form an undirected graph. In this type of structure, cycles can form, which require special attention. Some database operations resemble the DFS (Depth First Search) algorithm, which in its pure form on a cyclic graph can execute recursively infinitely, effectively preventing the database from functioning.
 
-### Struktura komunikatów
+## Protocol
+The protocol used in the database is a stateless protocol.
+
+### Message Structure
 ```
-[id zadania] <operacja> [argumenty operacji]
+[task ID] <operation> [args]
 ```
-- operacja - jest to operacja realizowana na bazie danych zlecona przez klienta
-- argumenty operacji - opcjonalnie są to dodatkowe parametry operacji
-- id zadania - UUID operacji, liczba unikalnie reprezentująca daną operację
+- *operation* - an operation performed on the database requested by the client
+- *args* - optionally, additional parameters for the operation
+- *task ID* - UUID of the operation, a number uniquely representing the operation
 
-### ID Zadania
-W komunikacji klient-węzeł id zadania nie jest wymagane, co sprawia że klient może je pominąć bez żadnych implikacji. Węzeł który odbiera komunikat, sprawdza czy ma on swój identyfikator i w sytuacji jego nieobecności generuje go. Węzły przed propagacją komunikatu do innych węzłów zapisują sobie jego identyfikator, tak aby być w stanie stwierdzić, czy ten sam komunikat nie dotarł do nich kolejny raz tworząc cykl. W przypadku wykrycia cyklu, węzeł zamyka połączenie i nie procesuje dalej tej operacji. Węzły pamiętają identyfikatory przez 60 sekund.
+### Task ID
+In client-node communication, the task ID is not required, which means the client can omit it without any implications. The node that receives the message checks if it has an identifier, and if it is absent, generates one. Nodes, before propagating the message to other nodes, record its identifier to determine if the same message has reached them again, creating a cycle. If a cycle is detected, the node closes the connection and does not process the operation further. Nodes remember identifiers for 60 seconds.
 
-### Możliwe operacje
+### Possible Operations
 - set-value\
-  Ustawia nową wartość klucza.\
-  *Składnia*: ```set-value <klucz>:<wartość>```\
-  *Odpowiedź*: ```OK``` jeżeli wartość zostanie ustawiona, ```ERROR``` jeżeli w bazie nie ma węzła przechowującego podany klucz
+  Sets a new value for a key.\
+  *Syntax*: ```set-value <key>:<value>```\
+  *Response*: ```OK``` if the value is set, ```ERROR``` if there is no node in the database holding the specified key
 
 - get-value\
-  Wyszukuje rekord z podanym kluczem.\
-  *Składnia*: ```get-value <klucz>```\
-  *Odpowiedź*: ```<klucz>:<wartość>``` jeżeli klucz zostanie odnaleziony, ```ERROR``` jeżeli w bazie nie ma węzła przechowującego podany klucz
+  Searches for a record with the specified key.\
+  *Syntax*: ```get-value <key>```\
+  *Response*: ```<key>:<value>``` if the key is found, ```ERROR``` if there is no node in the database holding the specified key
 
 - find-key\
-  Wyszukuje węzeł, który przechowuje podany klucz.\
-  *Składnia*: ```find-key <klucz>```\
-  *Odpowiedź*: ```<adres IP>:<port>``` jeżeli węzeł przechowujący rekord z podanym kluczem istnieje, ```ERROR``` jeżeli w bazie nie ma węzła przechowującego podany klucz
+  Searches for the node that holds the specified key.\
+  *Syntax*: ```find-key <key>```\
+  *Response*: ```<IP address>:<port>``` if the node holding the record with the specified key exists, ```ERROR``` if there is no node in the database holding the specified key
 
 - get-max\
-  Wyszukuje rekord z największą wartością.\
-  *Składnia*: ```get-max```\
-  *Odpowiedź*: ```<klucz>:<wartość>```
+  Searches for the record with the highest value.\
+  *Syntax*: ```get-max```\
+  *Response*: ```<key>:<value>```
 
 - get-min\
-  Wyszukuje rekord z najmniejszą wartością.\
-  *Składnia*: ```get-min```\
-  *Odpowiedź*: ```<klucz>:<wartość>```
+  Searches for the record with the lowest value.\
+  *Syntax*: ```get-min```\
+  *Response*: ```<key>:<value>```
 
 - new-record\
-  Ustawia nowy rekord przechowywany przez węzeł, który wykonuje tą operację.\
-  *Składnia*: ```new-record <klucz>:<wartość>```\
-  *Odpowiedź*: ```OK```
+  Sets a new record held by the node performing this operation.\
+  *Syntax*: ```new-record <key>:<value>```\
+  *Response*: ```OK```
 
 - terminate\
-  Wyłącza węzeł wykonujący tą operację, uprzednio odłączając go od sieci.\
-  *Składnia*: ```terminate```\
-  *Odpowiedź*: ```OK```
+  Shuts down the node performing this operation, disconnecting it from the network beforehand.\
+  *Syntax*: ```terminate```\
+  *Response*: ```OK```
 
-#### Specjalne Operacje
-Specjalne operacje są używane przez węzły w celu organizacji struktury bazy danych. **Nie powinny być one używane przez klienta.**
+#### Special Operations
+Special operations are used by nodes to organize the database structure. **They should not be used by the client.**
 - handshake\
-  Informuje węzeł o tym, że inny węzeł chce się z nim połączyć.\
-  *Składnia*: ```handshake <adres IP nadawcy>:<port nadawcy>```\
-  *Odpowiedź*: **Brak**
+  Informs a node that another node wants to connect to it.\
+  *Syntax*: ```handshake <sender IP address>:<sender port>```\
+  *Response*: **None**
 
 - bye\
-  Informuje węzeł o tym, że inny węzeł chce się od niego odłączyć.\
-  *Składnia*: ```bye <adres IP nadawcy>:<port nadawcy>```\
-  *Odpowiedź*: **Brak**
+  Informs a node that another node wants to disconnect from it.\
+  *Syntax*: ```bye <sender IP address>:<sender port>```\
+  *Response*: **None**
 
-## Wielowątkowość
-Procesy węzła posiadają dynamiczną pulę wątków, która dostosowuje się do obciążenia danego węzła, dzięki czemu jeden węzeł jest w stanie przetwarzać wiele operacji jednocześnie.
+## Multithreading
+Node processes have a dynamic thread pool that adjusts to the load on the given node, allowing a single node to process many operations simultaneously.
 
-## Kompilacja i Uruchomienie
-### Kompilacja
-- Manualna
+## Compilation and Execution
+### Compilation
+- Manual
 ```cmd
-:: W głównym folderze projektu
+:: In the main project folder
 javac -d out src/*.java
 ```
-- Przy użyciu skryptu kompilującego
+- Using the compilation script
 ```cmd
-:: W głównym folderze projektu
+:: In the main project folder
 .\compile.bat
 ```
-### Uruchomienie węzła bazy danych
-> Aby uruchomić węzeł musisz znajdować się w folderze ze skompilowanymi plikami `.class` lub ustawić odpowiedni `CLASSPATH`.
+### Running a database node
+> To run a node, you must be in the folder with the compiled `.class` files or set the appropriate `CLASSPATH`.
 ```
 java DatabaseNode -tcpport <port> -record <key>:<value> [<neighbour ip>:<neighbour port> ...]
 ```
-*\<port\>* - port na którym będzie nasłuchiwać uruchamiany węzeł\
-*\<key\>:\<value\>* - klucz oraz przechowywana pod nim wartość\
-*[\<neighbour ip\>:\<neighbour port\> ...]* - pary adresów IP i portów sąsiadujących węzłów
+*\<port\>* - the port on which the running node will listen\
+*\<key\>:\<value\>* - key and the value stored under it\
+*[\<neighbour ip\>:\<neighbour port\> ...]* - pairs of IP addresses and ports of neighboring nodes
 
-### Uruchomienie klienta
-> Aby uruchomić aplikację klienta musisz znajdować się w folderze ze skompilowanymi plikami `.class` lub ustawić odpowiedni `CLASSPATH`.
+### Running the client
+> To run the client application, you must be in the folder with the compiled `.class` files or set the appropriate `CLASSPATH`.
 ```
 java Client -gateway <ip>:<port> -operation <operation> [<args>]
 ```
-*\<ip\>:\<port\>* - adres IP oraz port węzła któremu klient zleci wykonanie podanej operacji\
-*\<operation\>* - operacja do wykonania na bazie danych\
-*\[<args\>]* - opcjonalne argumenty operacji
+*ip:port* - the IP address and port of the node to which the client will delegate the specified operation\
+*operation* - operation to be performed on the database\
+*args* - optional operation arguments
 
-### Uruchomienie przykładowych testów
-W katalogu tests znajdują się trzy skrypty zawierający przykładowe testy.
+### Running example tests
+The tests directory contains three scripts with example tests.
 ```cmd
-:: W folderze tests
-.\<nazwa testu>.bat
+:: In the tests folder
+.\<test name>.bat
 ```
 
-***Uwagi:***
-- Skrypty testowe należy uruchamiać po uprzednim skompilowaniu projektu
-- Skrypty testowe wykorzystują załączonego klienta bazy danych (```Client.java```)
+***Notes:***
+- Test scripts should be run after compiling the project
+- Test scripts use the included database client (```Client.java```)
 
-## Co zostało zaimplementowane
-- Możliwość organizacji sieci tworzącej bazę danych (inkrementalne podłączanie węzłów oraz ich terminacja)
-- Wszystkie wyżej wymienione operacje
-- Detekcja cykli
-- Wielowątkowość (możliwość przetwarzania wielu operacji jednocześnie, czyli możliwość istnienia wielu klientów korzystających z bazy jednocześnie)
-  Czyli chyba wszystko co zostało wymienione w specyfikacji.
+## Implemented Features
+- Ability to organize a network forming the database (incremental node connection and termination)
+- All the operations listed above
+- Cycle detection
+- Multithreading (ability to process multiple operations simultaneously, allowing multiple clients to use the database concurrently)
+  So, presumably, everything mentioned in the specification.
