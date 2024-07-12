@@ -115,4 +115,3 @@ The tests directory contains three scripts with example tests.
 - All the operations listed above
 - Cycle detection
 - Multithreading (ability to process multiple operations simultaneously, allowing multiple clients to use the database concurrently)
-  So, presumably, everything mentioned in the specification.
