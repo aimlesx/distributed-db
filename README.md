@@ -10,9 +10,9 @@ Protokół używany w bazie danych jest protokołem bezstanowym.
 ```
 [id zadania] <operacja> [argumenty operacji]
 ```
-- operacja - jest to operacja realizowana na bazie danych zlecona przez klienta\
-- argumenty operacji - opcjonalnie są to dodatkowe parametry operacji\
-- id zadania - UUID operacji, liczba unikalnie reprezentująca daną operację\
+- operacja - jest to operacja realizowana na bazie danych zlecona przez klienta
+- argumenty operacji - opcjonalnie są to dodatkowe parametry operacji
+- id zadania - UUID operacji, liczba unikalnie reprezentująca daną operację
 
 ### ID Zadania
 W komunikacji klient-węzeł id zadania nie jest wymagane, co sprawia że klient może je pominąć bez żadnych implikacji. Węzeł który odbiera komunikat, sprawdza czy ma on swój identyfikator i w sytuacji jego nieobecności generuje go. Węzły przed propagacją komunikatu do innych węzłów zapisują sobie jego identyfikator, tak aby być w stanie stwierdzić, czy ten sam komunikat nie dotarł do nich kolejny raz tworząc cykl. W przypadku wykrycia cyklu, węzeł zamyka połączenie i nie procesuje dalej tej operacji. Węzły pamiętają identyfikatory przez 60 sekund.
